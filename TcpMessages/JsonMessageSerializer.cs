@@ -1,18 +1,15 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Linq;
 using System.Text;
-using System.Threading.Tasks;
 using System.Runtime.Serialization.Json;
 using System.IO;
 
 namespace TcpMessages
 {
-    public class JsonMessageSerializer<T> : IMessageSerializer<T>
+    public class JsonMessageSerializer : IMessageSerializer
     {
-        public string Serialize(T message)
+        public string Serialize(object message)
         {
-            var serializer = new DataContractJsonSerializer(typeof(T));
+            var serializer = new DataContractJsonSerializer(message.GetType());
             using (var ms = new MemoryStream())
             {
                 serializer.WriteObject(ms, message);
@@ -20,12 +17,12 @@ namespace TcpMessages
             }
         }
 
-        public T Deserialize(string str)
+        public object Deserialize(string json, Type messaType)
         {
-            var serializer = new DataContractJsonSerializer(typeof(T));
-            using (var ms = new MemoryStream(Encoding.UTF8.GetBytes(str)))
+            var serializer = new DataContractJsonSerializer(messaType);
+            using (var ms = new MemoryStream(Encoding.UTF8.GetBytes(json)))
             {
-                return (T)serializer.ReadObject(ms);
+                return serializer.ReadObject(ms);
             }
         }
     }

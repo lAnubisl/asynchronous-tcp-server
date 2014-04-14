@@ -1,15 +1,11 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace TcpMessages
 {
-    public interface IMessageSerializer<T>
+    public interface IMessageSerializer
     {
-        string Serialize(T message);
+        string Serialize(object message);
 
-        T Deserialize(string str);
+        object Deserialize(string str, Type messageType);
     }
 }

@@ -40,12 +40,17 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="GZipMessageCompressor.cs" />
+    <Compile Include="IMessageCompressor.cs" />
+    <Compile Include="ISymmetricMessageEncryptor.cs" />
+    <Compile Include="IMessageProcessor.cs" />
     <Compile Include="IMessageSerializer.cs" />
     <Compile Include="JsonMessageSerializer.cs" />
     <Compile Include="LoginMessage.cs" />
     <Compile Include="MessageProcessor.cs" />
     <Compile Include="MessageWrapper.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
+    <Compile Include="RijndaelMessageEncryptor.cs" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 

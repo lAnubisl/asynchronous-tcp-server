@@ -11,9 +11,9 @@ namespace TcpMessages
     public class LoginMessage
     {
         [DataMember]
-        public string username;
+        public string Username;
 
         [DataMember]
-        public string password;
+        public string Password;
     }
 }
