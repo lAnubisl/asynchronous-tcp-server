@@ -20,6 +20,8 @@
     <DefineConstants>DEBUG;TRACE</DefineConstants>
     <ErrorReport>prompt</ErrorReport>
     <WarningLevel>4</WarningLevel>
+    <RunCodeAnalysis>true</RunCodeAnalysis>
+    <CodeAnalysisRuleSet>AllRules.ruleset</CodeAnalysisRuleSet>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
     <DebugType>pdbonly</DebugType>
@@ -40,13 +42,15 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="GlobalSuppressions.cs" />
     <Compile Include="GZipMessageCompressor.cs" />
+    <Compile Include="IMessage.cs" />
     <Compile Include="IMessageCompressor.cs" />
     <Compile Include="ISymmetricMessageEncryptor.cs" />
     <Compile Include="IMessageProcessor.cs" />
     <Compile Include="IMessageSerializer.cs" />
     <Compile Include="JsonMessageSerializer.cs" />
-    <Compile Include="LoginMessage.cs" />
+    <Compile Include="LogOnMessage.cs" />
     <Compile Include="MessageProcessor.cs" />
     <Compile Include="MessageWrapper.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />

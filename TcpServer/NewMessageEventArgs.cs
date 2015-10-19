@@ -1,22 +1,26 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+using TcpMessages;
 
 namespace TcpServer
 {
     public class NewMessageEventArgs : EventArgs
     {
-        private readonly string message;
+        private readonly IMessage message;
+        private readonly Connection connection;
 
-        public string Message
+        public IMessage Message
         {
             get { return this.message; }
         }
 
-        public NewMessageEventArgs(Connection stateObject, string message) : base()
+        public Connection Connection
         {
+            get { return this.connection; }
+        }
+
+        public NewMessageEventArgs(Connection connection, IMessage message)
+        {
+            this.connection = connection;
             this.message = message;
         }
     }

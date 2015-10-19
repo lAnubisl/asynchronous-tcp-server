@@ -2,8 +2,8 @@
 {
     public interface IMessageProcessor
     {
-        byte[] PrepareBeforeSend(object message);
+        byte[] PrepareBeforeSend(IMessage message);
 
-        object PrepareAfterRecieve(byte[] str);
+        IMessage PrepareAfterReceive(byte[] data);
     }
 }

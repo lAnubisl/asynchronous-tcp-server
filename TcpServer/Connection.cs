@@ -1,29 +1,41 @@
 ﻿using System;
-using System.Collections.Generic;
 using System.Linq;
 using System.Net.Sockets;
-using System.Text;
-using System.Threading.Tasks;
+using TcpMessages;
 
 namespace TcpServer
 {
-    public class Connection
+    public sealed class Connection
     {
         private readonly Socket socket;
-        private readonly int bufferSize;
-        private byte[] buffer;
-        private StringBuilder sb = new StringBuilder();
-        public EventHandler<NewMessageEventArgs> newMessageEvent = delegate { };
-        public EventHandler<DisconnectionEventArgs> disconnectEvent = delegate { };
+        private readonly byte[] messageSizeInBytes = new byte[8];
+        private EventHandler<NewMessageEventArgs> newMessageEvent = delegate { };
+        private EventHandler<DisconnectionEventArgs> disconnectEvent = delegate { };
+        private readonly IMessageProcessor processor = new MessageProcessor();
 
-        public Connection(Socket socket, int bufferSize)
+        public EventHandler<NewMessageEventArgs> NewMessageEvent
         {
-            this.bufferSize = bufferSize;
-            this.buffer = new byte[bufferSize];
+            get { return this.newMessageEvent; }
+            set { this.newMessageEvent = value; }
+        }
+
+        public EventHandler<DisconnectionEventArgs> DisconnectEvent
+        {
+            get { return this.disconnectEvent; }
+            set { this.disconnectEvent = value; }
+        }
+
+        public Connection(Socket socket)
+        {
+            if (socket == null)
+            {
+                throw new ArgumentNullException("socket");
+            }
+
             this.socket = socket;
             try
             {
-                this.socket.BeginReceive(this.buffer, 0, this.bufferSize, 0, new AsyncCallback(ReceiveCallback), this);
+                this.socket.BeginReceive(this.messageSizeInBytes, 0, this.messageSizeInBytes.Length, 0, ReceiveCallback, this);
             }
             catch (SocketException)
             {
@@ -31,41 +43,35 @@ namespace TcpServer
             }          
         }
 
-        private void Disconnect()
+        public void Disconnect()
         {
-            this.socket.Dispose();
-            disconnectEvent.Invoke(this, new DisconnectionEventArgs(this));
+            this.socket.Close();
+            DisconnectEvent.Invoke(this, new DisconnectionEventArgs(this));
         }
 
-        public void Send(String data)
+        public void Send(IMessage message)
         {
-            byte[] byteData = Encoding.ASCII.GetBytes(data);
-            this.socket.BeginSend(byteData, 0, byteData.Length, 0, new AsyncCallback(SendCallback), socket);
+            var messageInBytes = processor.PrepareBeforeSend(message);
+            var currentMessageSizeInBytes = BitConverter.GetBytes(messageInBytes.Length);
+            this.socket.BeginSend(currentMessageSizeInBytes.Concat(messageInBytes).ToArray(), 0, messageInBytes.Length, 0, SendCallback, socket);
         }
 
         private void SendCallback(IAsyncResult asyncResult)
         {
-            int bytesSent = this.socket.EndSend(asyncResult);
+            this.socket.EndSend(asyncResult);
         }
 
         private void ReceiveCallback(IAsyncResult asyncResult)
         {
-            string content = null;
             try
             {
-                var readBytesCount = this.socket.EndReceive(asyncResult);
-                if (readBytesCount > 0)
-                {
-                    sb.Append(Encoding.ASCII.GetString(this.buffer, 0, readBytesCount));
-                    content = this.sb.ToString();
-                    if (content.IndexOf("<EOF>") > -1)
-                    {
-                        newMessageEvent.Invoke(this, new NewMessageEventArgs(this, content));
-                        sb.Clear();
-                    }
-                }
-
-                this.socket.BeginReceive(this.buffer, 0, this.bufferSize, 0, new AsyncCallback(ReceiveCallback), this);
+                this.socket.EndReceive(asyncResult);
+                var messageSize = BitConverter.ToInt64(messageSizeInBytes, 0);
+                var messageInBytes = new byte[messageSize];
+                this.socket.Receive(messageInBytes);
+                var message = processor.PrepareAfterReceive(messageInBytes);
+                NewMessageEvent.Invoke(this, new NewMessageEventArgs(this, message));
+                this.socket.BeginReceive(this.messageSizeInBytes, 0, this.messageSizeInBytes.Length, 0, ReceiveCallback, this);
             }
             catch (SocketException)
             {

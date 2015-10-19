@@ -9,8 +9,13 @@ namespace TcpMessages
         private readonly ISymmetricMessageEncryptor messageEncryptor = new RijndaelMessageEncryptor();
         private readonly IMessageCompressor messageCompressor = new GZipMessageCompressor();
 
-        public byte[] PrepareBeforeSend(object message)
+        public byte[] PrepareBeforeSend(IMessage message)
         {
+            if (message == null)
+            {
+                throw new ArgumentNullException("message");
+            }
+
             var messageJson = messageSerializer.Serialize(message);
             var wrapper = new MessageWrapper();
             wrapper.MessageBody = messageJson;
@@ -22,14 +27,14 @@ namespace TcpMessages
             return encrypted;
         }
 
-        public object PrepareAfterRecieve(byte[] bytes)
+        public IMessage PrepareAfterReceive(byte[] data)
         {
-            var decrypted = messageEncryptor.Decrypt(bytes, "12345678");
+            var decrypted = messageEncryptor.Decrypt(data, "12345678");
             var decompressed = messageCompressor.Decompress(decrypted);
             var json = Encoding.UTF8.GetString(decompressed);
             var wrapper = (MessageWrapper)messageSerializer.Deserialize(json, typeof (MessageWrapper));
             var message = messageSerializer.Deserialize(wrapper.MessageBody, Type.GetType(wrapper.MessageType));
-            return message;
+            return (IMessage)message;
         }
     }
 }

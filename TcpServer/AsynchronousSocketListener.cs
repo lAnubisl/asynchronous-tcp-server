@@ -1,57 +1,64 @@
 ﻿using System;
-using System.Collections.Concurrent;
-using System.Collections.Generic;
-using System.Collections.ObjectModel;
 using System.Net;
 using System.Net.Sockets;
-using System.Text;
 using System.Threading;
-using TcpServer;
 
-public class AsynchronousSocketListener
+namespace TcpServer
 {
-    private readonly int port;
-    private readonly Encoding encoding;
-    public static ManualResetEvent allDone = new ManualResetEvent(false);
-    private readonly Socket acceptSocket;
-
-    public EventHandler<NewConnectionEventArgs> newConnectionEvent = delegate { };
-
-    public AsynchronousSocketListener(int port, Encoding encoding)
+    public class AsynchronousSocketListener : IDisposable
     {
-        this.port = port;
-        this.encoding = encoding;
-        this.acceptSocket = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
-    }
+        private readonly int port;
+        private static readonly ManualResetEvent allDone = new ManualResetEvent(false);
+        private readonly Socket acceptSocket;
+        private EventHandler<NewConnectionEventArgs> newConnectionEvent = delegate { };
 
-    public void StartListening()
-    {
-        try
+        public EventHandler<NewConnectionEventArgs> NewConnectionEvent
         {
-            IPHostEntry ipHostInfo = Dns.Resolve("localhost");
+            get { return this.newConnectionEvent; }
+            set { this.newConnectionEvent = value; }
+        }
+
+        public AsynchronousSocketListener(int port)
+        {
+            this.port = port;
+            this.acceptSocket = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
+        }
+
+        public void StartListening()
+        {
+            IPHostEntry ipHostInfo = Dns.GetHostEntry("localhost");
             IPAddress ipAddress = ipHostInfo.AddressList[0];
             IPEndPoint localEndPoint = new IPEndPoint(ipAddress, this.port);
             acceptSocket.Bind(localEndPoint);
             acceptSocket.Listen(100);
             while (true)
             {
-                allDone.Reset();    
-                acceptSocket.BeginAccept(new AsyncCallback(AcceptCallback), acceptSocket);
+                allDone.Reset();
+                acceptSocket.BeginAccept(AcceptCallback, null);
                 allDone.WaitOne();
             }
         }
-        catch (Exception e)
-        {
-            Console.WriteLine(e.ToString());
-        }
-    }
 
-    public void AcceptCallback(IAsyncResult asyncResult)
-    {
-        allDone.Set();
-        var acceptSocket = (Socket)asyncResult.AsyncState;
-        Socket socket = acceptSocket.EndAccept(asyncResult);
-        Connection state = new Connection(socket, 1024);
-        newConnectionEvent.Invoke(this, new NewConnectionEventArgs(state));
+        public void AcceptCallback(IAsyncResult asyncResult)
+        {
+            allDone.Set();
+            var socket = this.acceptSocket.EndAccept(asyncResult);
+            var connection = new Connection(socket);
+            NewConnectionEvent.Invoke(this, new NewConnectionEventArgs(connection));
+        }
+
+        protected virtual void Dispose(bool disposing)
+        {
+            if (disposing)
+            {
+                acceptSocket.Close();
+            }
+        }
+
+        public void Dispose()
+        {
+            Dispose(true);
+            GC.SuppressFinalize(this);
+        }
     }
 }

@@ -6,6 +6,6 @@ namespace TcpMessages
     {
         string Serialize(object message);
 
-        object Deserialize(string str, Type messageType);
+        object Deserialize(string text, Type messageType);
     }
 }

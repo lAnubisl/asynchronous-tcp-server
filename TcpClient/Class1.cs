@@ -1,8 +1,5 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+﻿
+using TcpMessages;
 
 namespace TcpClient
 {
@@ -12,42 +9,28 @@ namespace TcpClient
     using System.Threading;
     using System.Text;
 
-    // State object for receiving data from remote device.
-    public class StateObject
-    {
-        // Client socket.
-        public Socket workSocket = null;
-        // Size of receive buffer.
-        public const int BufferSize = 256;
-        // Receive buffer.
-        public byte[] buffer = new byte[BufferSize];
-        // Received data string.
-        public StringBuilder sb = new StringBuilder();
-    }
-
     public class AsynchronousClient
     {
-        // The port number for the remote device.
-        private const int port = 9000;
         private static ManualResetEvent connectDone = new ManualResetEvent(false);
         private static ManualResetEvent sendDone = new ManualResetEvent(false);
         private static ManualResetEvent receiveDone = new ManualResetEvent(false);
-        private static String response = String.Empty;
+        private Socket socket;
 
-        private static void StartClient()
+        private void StartClient()
         {
             try
             {
-                IPHostEntry ipHostInfo = Dns.Resolve("localhost");
-                IPAddress ipAddress = ipHostInfo.AddressList[0];
-                IPEndPoint remoteEP = new IPEndPoint(ipAddress, port);
-                Socket client = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
-                client.BeginConnect(remoteEP, new AsyncCallback(ConnectCallback), client);
+                var ipHostInfo = Dns.Resolve("localhost");
+                var ipAddress = ipHostInfo.AddressList[0];
+                var remoteEndPoint = new IPEndPoint(ipAddress, 9100);
+                socket = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
+                socket.BeginConnect(remoteEndPoint, ConnectCallback, null);
                 connectDone.WaitOne();
-                Send(client, "This is a test1<EOF>");
+                Send(new LogOnMessage());
                 sendDone.WaitOne();
-                Send(client, "This is a test2<EOF>");
+                Send(new LogOnMessage());
                 sendDone.WaitOne();
+                Console.ReadLine();
             }
             catch (Exception e)
             {
@@ -55,12 +38,11 @@ namespace TcpClient
             }
         }
 
-        private static void ConnectCallback(IAsyncResult ar)
+        private void ConnectCallback(IAsyncResult asyncResult)
         {
             try
             {
-                Socket client = (Socket)ar.AsyncState;
-                client.EndConnect(ar);
+                socket.EndConnect(asyncResult);
                 connectDone.Set();
             }
             catch (Exception e)
@@ -69,7 +51,7 @@ namespace TcpClient
             }
         }
 
-        private static void Send(Socket client, String data)
+        private void Send(IMessage data)
         {
             byte[] byteData = Encoding.ASCII.GetBytes(data);
             client.BeginSend(byteData, 0, byteData.Length, 0, new AsyncCallback(SendCallback), client);

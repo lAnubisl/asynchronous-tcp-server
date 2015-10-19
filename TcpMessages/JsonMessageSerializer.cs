@@ -9,6 +9,11 @@ namespace TcpMessages
     {
         public string Serialize(object message)
         {
+            if (message == null)
+            {
+                throw new ArgumentNullException("message");
+            }
+
             var serializer = new DataContractJsonSerializer(message.GetType());
             using (var ms = new MemoryStream())
             {
@@ -17,10 +22,10 @@ namespace TcpMessages
             }
         }
 
-        public object Deserialize(string json, Type messaType)
+        public object Deserialize(string text, Type messageType)
         {
-            var serializer = new DataContractJsonSerializer(messaType);
-            using (var ms = new MemoryStream(Encoding.UTF8.GetBytes(json)))
+            var serializer = new DataContractJsonSerializer(messageType);
+            using (var ms = new MemoryStream(Encoding.UTF8.GetBytes(text)))
             {
                 return serializer.ReadObject(ms);
             }
